@@ -1,0 +1,10 @@
+services:
+  journal:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./db:/data/db
+    environment:
+      - DB_PATH=/data/db/journals.db
+    restart: unless-stopped
