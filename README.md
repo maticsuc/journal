@@ -31,16 +31,76 @@ A personal journaling application built with Next.js, featuring a clean interfac
    pnpm install
    ```
 
-3. Start the development server:
+3. **For ARM64/Raspberry Pi users**: If you encounter errors about missing `better_sqlite3.node` bindings, you'll need to manually compile them:
+   
+   ```bash
+   # Install build dependencies (if not already installed)
+   sudo apt-get install -y build-essential python3
+   
+   # Navigate to better-sqlite3 and build
+   cd node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3
+   npm run install
+   cd /home/matic/dev/journal-github
+   ```
+
+4. Start the development server:
    ```bash
    pnpm dev
    ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Troubleshooting
+
+### better-sqlite3 Native Bindings Error
+
+If you see an error like "Could not locate the bindings file" for `better-sqlite3`:
+
+**Cause**: The package requires native Node.js bindings that must be compiled for your specific architecture (especially ARM64/Raspberry Pi).
+
+**Solution**:
+
+1. Ensure you have the required build tools:
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y build-essential python3 sqlite3 libsqlite3-dev
+   ```
+
+2. Clean and reinstall:
+   ```bash
+   rm -rf node_modules .next
+   pnpm install
+   ```
+
+3. If the error persists, manually compile better-sqlite3:
+   ```bash
+   cd node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3
+   npm run install
+   ```
+   
+   Note: Compilation on ARM64 devices (like Raspberry Pi) may take several minutes.
+
+4. Verify the native binding was created:
+   ```bash
+   ls -la node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build/Release/
+   ```
+   
+   You should see `better_sqlite3.node` file.
 
 ## Configuration
 
 The app uses SQLite for data storage. By default, the database is created at `db/journals.db` in the project root.
+
+### Build Scripts Configuration
+
+The project includes an `.npmrc` file that enables pre/post-install scripts for `better-sqlite3`:
+
+```properties
+enable-pre-post-scripts=true
+scripts-allow-list=better-sqlite3
+```
+
+This configuration allows the native bindings to be compiled automatically during installation on supported systems.
 
 ### Environment Variables
 
@@ -86,14 +146,6 @@ DB_PATH=/path/to/your/database.db pnpm dev
    ```bash
    pnpm start
    ```
-
-### Deploy to Vercel
-
-1. Push your code to GitHub
-2. Connect your repository to Vercel
-3. Set the `DB_PATH` environment variable in Vercel if needed (though for serverless, you might need to use a different storage solution)
-
-Note: For production deployments, consider using a more robust database solution instead of local SQLite files.
 
 ## Project Structure
 
