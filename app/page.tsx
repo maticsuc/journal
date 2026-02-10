@@ -35,11 +35,12 @@ export default function JournalApp() {
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const entryRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const creationMessages = [
-    "Nice writing!",
-    "Cool journal!",
-    "Nicely said!",
-    "Love this entry!",
-    "Great reflection!",
+    "Zelo lepo napisano! 🖋️",
+    "Zanimivo! 🤔",
+    "Hvala, ker deliš! 🙏",
+    "Lepo je videti tvoje misli zapisane. 🌟",
+    "Vsaka beseda šteje! 📝",
+    "Odlično delo! 👏"
   ];
 
   const getRandomCreationMessage = () => {
