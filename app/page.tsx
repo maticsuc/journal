@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { RichMarkdownEditor } from "@/components/rich-markdown-editor";
 import { Plus, Save, X, Trash2, Edit2, Pin } from "lucide-react";
 import { getCategoryColor } from "@/lib/categories";
 import { toast } from "sonner";
@@ -286,13 +286,12 @@ export default function JournalApp() {
                   setFormData({ ...formData, title: e.target.value })
                 }
               />
-              <Textarea
-                placeholder="Text"
-                rows={5}
+              <RichMarkdownEditor
                 value={formData.text}
-                onChange={(e) =>
-                  setFormData({ ...formData, text: e.target.value })
+                onChange={(text) =>
+                  setFormData({ ...formData, text })
                 }
+                placeholder="Write your thoughts..."
               />
 
               {/* Categories Section */}
@@ -401,13 +400,12 @@ export default function JournalApp() {
                               setFormData({ ...formData, title: e.target.value })
                             }
                           />
-                          <Textarea
-                            placeholder="Text"
-                            rows={5}
+                          <RichMarkdownEditor
                             value={formData.text}
-                            onChange={(e) =>
-                              setFormData({ ...formData, text: e.target.value })
+                            onChange={(text) =>
+                              setFormData({ ...formData, text })
                             }
+                            placeholder="Write your thoughts..."
                           />
 
                           {/* Categories Section */}
@@ -559,9 +557,10 @@ export default function JournalApp() {
                             </div>
                           </CardHeader>
                           <CardContent>
-                            <p className="whitespace-pre-wrap text-base leading-relaxed">
-                              {entry.text}
-                            </p>
+                            <div 
+                              className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1.5 prose-p:leading-relaxed prose-headings:mt-3 prose-headings:mb-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-hr:my-3"
+                              dangerouslySetInnerHTML={{ __html: entry.text }}
+                            />
                           </CardContent>
                         </>
                       )}
