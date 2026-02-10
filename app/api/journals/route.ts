@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import db, { statements } from "../../../lib/db";
+import getDb, { statements as getStatements } from "../../../lib/db";
 
 // GET - List all journals
 export async function GET() {
   try {
+    const statements = getStatements();
     const entries = statements.selectAll.all().map((row) => ({
       filename: row.filename,
       date: row.date,
@@ -27,6 +28,7 @@ export async function GET() {
 // POST - Create new journal
 export async function POST(req: Request) {
   try {
+    const statements = getStatements();
     const body = await req.json();
     const { date, title, text, categories = [] } = body;
 
@@ -54,6 +56,7 @@ export async function POST(req: Request) {
 // PUT - Update journal
 export async function PUT(req: Request) {
   try {
+    const statements = getStatements();
     const body = await req.json();
     const { filename, date, title, text, categories = [], pinned } = body;
 
@@ -81,6 +84,7 @@ export async function PUT(req: Request) {
 // PATCH - Toggle pinned
 export async function PATCH(req: Request) {
   try {
+    const statements = getStatements();
     const body = await req.json();
     const { filename } = body;
 
@@ -96,6 +100,7 @@ export async function PATCH(req: Request) {
 // DELETE - Remove journal
 export async function DELETE(req: Request) {
   try {
+    const statements = getStatements();
     const body = await req.json();
     const { filename } = body;
 
