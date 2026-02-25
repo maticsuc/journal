@@ -161,14 +161,43 @@ DB_PATH=/path/to/your/database.db pnpm dev
 └── journals/            # Journal text files (not committed)
 ```
 
+
 ## Technologies Used
 
 - **Framework**: Next.js 16
 - **UI Components**: Radix UI
 - **Styling**: Tailwind CSS
 - **Database**: SQLite with better-sqlite3
-- **Icons**: Lucide React
+- **Icons**: Custom SVG icon (see public/icon.svg), Lucide React
 - **Deployment**: Docker
+
+## Deployment
+
+### Docker Deployment
+
+The app includes Docker support for easy deployment:
+
+```bash
+# Build and run with docker-compose
+docker compose up -d
+
+# View logs
+docker compose logs -f
+```
+
+### Raspberry Pi Public Instance
+
+To run a second public instance alongside your production instance:
+
+- **[Full Deployment Guide](RASPBERRY_PI_DEPLOYMENT.md)** - Complete step-by-step instructions for deploying a public instance with Tailscale, rate limiting, and bot protection
+- **[Quick Reference](QUICK_DEPLOYMENT_REFERENCE.md)** - Essential commands and troubleshooting
+
+**Included Configuration Files:**
+- `docker-compose.public.yml` - Docker Compose config for public instance
+- `nginx-journal-public.conf` - Nginx reverse proxy with rate limiting
+- `backup-public.sh` - Automated database backup script
+- `fail2ban-journal-public.conf` - Fail2ban filter for bot protection
+- `fail2ban-journal-public.jail` - Fail2ban jail configuration
 
 ## Contributing
 
