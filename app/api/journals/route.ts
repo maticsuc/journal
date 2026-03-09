@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
 import getDb, { statements as getStatements } from "../../../lib/db";
+import { getCachedJournals, setCachedJournals, invalidateJournalsCache } from "../../../lib/cache";
 
-// GET - List all journals
+// GET - List all journals (with caching)
 export async function GET() {
   try {
+    // 1. Try to get from cache first
+    const cachedEntries = await getCachedJournals();
+    if (cachedEntries) {
+      return NextResponse.json({ entries: cachedEntries });
+    }
+
+    // 2. Cache miss - fetch from database
     const statements = getStatements();
     const entries = statements.selectAll.all().map((row) => ({
       filename: row.filename,
@@ -14,6 +22,9 @@ export async function GET() {
       timestamp: row.timestamp,
       pinned: !!row.pinned,
     }));
+
+    // 3. Store in cache for next request
+    await setCachedJournals(entries);
 
     return NextResponse.json({ entries });
   } catch (error) {
@@ -46,6 +57,9 @@ export async function POST(req: Request) {
       0, // pinned
     );
 
+    // Invalidate cache since we added a new journal
+    await invalidateJournalsCache();
+
     return NextResponse.json({ success: true, filename });
   } catch (error) {
     console.error("POST error:", error);
@@ -74,6 +88,9 @@ export async function PUT(req: Request) {
       filename,
     );
 
+    // Invalidate cache since we updated a journal
+    await invalidateJournalsCache();
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("PUT error:", error);
@@ -90,6 +107,9 @@ export async function PATCH(req: Request) {
 
     statements.togglePinned.run(filename);
 
+    // Invalidate cache since we modified a journal
+    await invalidateJournalsCache();
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("PATCH error:", error);
@@ -105,6 +125,9 @@ export async function DELETE(req: Request) {
     const { filename } = body;
 
     statements.delete.run(filename);
+
+    // Invalidate cache since we deleted a journal
+    await invalidateJournalsCache();
 
     return NextResponse.json({ success: true });
   } catch (error) {
