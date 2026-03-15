@@ -265,7 +265,7 @@ export default function JournalApp() {
       ...prev,
       [entry.filename]: {
         ...(prev[entry.filename] || {}),
-        [agent]: { name: agentLabel, reflection: undefined },
+        [agent]: { name: agentLabel, reflection: "" },
       },
     }));
     try {
