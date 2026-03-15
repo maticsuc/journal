@@ -10,6 +10,51 @@ A personal journaling application built with Next.js, featuring a clean interfac
 - 🌙 Dark/Light theme toggle
 - 📱 Responsive design
 - 🗃️ SQLite database for local storage
+- 🤖 AI-powered Reflections (Ollama agents)
+
+## Installation
+
+### Prerequisites
+
+- Node.js 18 or later
+- pnpm (recommended) or npm
+
+### Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/journal.git
+   cd journal
+   ```
+
+2. Install dependencies:
+   ```bash
+   pnpm install
+   ```
+
+3. Copy `.env.example` to `.env` and adjust values as needed:
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Start the development server:
+   ```bash
+   pnpm dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+# Journal App
+
+A personal journaling application built with Next.js, featuring a clean interface for creating, editing, and organizing journal entries with categories and pinning functionality.
+
+## Features
+
+- 📝 Create and edit journal entries
+- 🏷️ Organize entries with categories
+- 📌 Pin important entries
+- 🌙 Dark/Light theme toggle
+- 📱 Responsive design
+- 🗃️ SQLite database for local storage
 
 ## Installation
 

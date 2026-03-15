@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { RichMarkdownEditor } from "@/components/rich-markdown-editor";
-import { Plus, Save, X, Trash2, Edit2, Pin } from "lucide-react";
+import { Plus, Save, X, Trash2, Edit2, Pin, RefreshCw } from "lucide-react";
 import { getCategoryColor } from "@/lib/categories";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 
 interface JournalEntry {
   filename: string;
@@ -23,6 +24,14 @@ interface JournalEntry {
 
 export default function JournalApp() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
+  // agentReflections: { [filename]: { [agentName]: { name, reflection } } }
+  const [agentReflections, setAgentReflections] = useState<Record<string, Record<string, { name: string; reflection: string }>>>({});
+  const [reflecting, setReflecting] = useState<Record<string, boolean>>({});
+  const [selectedAgent, setSelectedAgent] = useState<Record<string, string>>({});
+  const agentOptions = [
+    { value: "marcus-aurelius", label: "Marcus Aurelius" },
+    { value: "big-momma", label: "Big Momma" },
+  ];
   const [isCreating, setIsCreating] = useState(false);
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -243,6 +252,40 @@ export default function JournalApp() {
     if (e.key === "Enter") {
       e.preventDefault();
       addNewCategory();
+    }
+  };
+
+  // Handle agent reflection
+  const handleAgentReflect = async (entry: JournalEntry, agentName?: string) => {
+    const agent = agentName || selectedAgent[entry.filename] || "marcus-aurelius";
+    const agentLabel = agentOptions.find(a => a.value === agent)?.label || "Marcus Aurelius";
+    setReflecting((prev) => ({ ...prev, [`${entry.filename}_${agent}`]: true }));
+    // Clear previous reflection for this agent while generating
+    setAgentReflections((prev) => ({
+      ...prev,
+      [entry.filename]: {
+        ...(prev[entry.filename] || {}),
+        [agent]: { name: agentLabel, reflection: undefined },
+      },
+    }));
+    try {
+      const res = await fetch("/api/reflect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entry: entry.text, agentName: agent }),
+      });
+      const data = await res.json();
+      setAgentReflections((prev) => ({
+        ...prev,
+        [entry.filename]: {
+          ...(prev[entry.filename] || {}),
+          [agent]: { name: agentLabel, reflection: data.reflection },
+        },
+      }));
+    } catch (e) {
+      toast(renderToast("🤖", "Agent error", "Failed to reflect on journal."));
+    } finally {
+      setReflecting((prev) => ({ ...prev, [`${entry.filename}_${agent}`]: false }));
     }
   };
 
@@ -561,6 +604,62 @@ export default function JournalApp() {
                               className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1.5 prose-p:leading-relaxed prose-headings:mt-3 prose-headings:mb-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-hr:my-3"
                               dangerouslySetInnerHTML={{ __html: entry.text }}
                             />
+                            <div className="mt-4 flex items-center gap-2">
+                              {agentOptions.map(agent => {
+                                const isReflecting = reflecting[`${entry.filename}_${agent.value}`];
+                                const isReflected = agentReflections[entry.filename]?.[agent.value];
+                                if (isReflecting || isReflected) return null;
+                                return (
+                                  <Button
+                                    key={agent.value}
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedAgent(prev => ({ ...prev, [entry.filename]: agent.value }));
+                                      handleAgentReflect(entry, agent.value);
+                                    }}
+                                  >
+                                    {agent.label}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                            <>
+                              {agentOptions.map(agent => {
+                                const isReflecting = reflecting[`${entry.filename}_${agent.value}`];
+                                const reflection = agentReflections[entry.filename]?.[agent.value];
+                                if (!isReflecting && !reflection) return null;
+                                return (
+                                  <div className="mt-6" key={agent.value}>
+                                    <div className="rounded-xl border bg-card text-card-foreground p-4 relative">
+                                      <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                                        {agent.label}
+                                      </div>
+                                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1.5 prose-p:leading-relaxed">
+                                        {isReflecting || !reflection ? (
+                                          <span className="animate-pulse text-muted-foreground">
+                                            {agent.label} reflecting on your journal.
+                                          </span>
+                                        ) : (
+                                          reflection?.reflection
+                                        )}
+                                      </div>
+                                      {!isReflecting && reflection && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="absolute top-2 right-2"
+                                          onClick={() => handleAgentReflect(entry, agent.value)}
+                                        >
+                                          <RefreshCw className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </>
+                          
                           </CardContent>
                         </>
                       )}
