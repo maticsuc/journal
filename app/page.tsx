@@ -24,14 +24,10 @@ interface JournalEntry {
 
 export default function JournalApp() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
-  // agentReflections: { [id]: { [agentName]: { name, reflection } } }
   const [agentReflections, setAgentReflections] = useState<Record<string, Record<string, { name: string; reflection: string }>>>({});
   const [reflecting, setReflecting] = useState<Record<string, boolean>>({});
   const [selectedAgent, setSelectedAgent] = useState<Record<number, string>>({});
-  const agentOptions = [
-    { value: "marcus-aurelius", label: "Marcus Aurelius" },
-    { value: "big-momma", label: "Big Momma" },
-  ];
+  const [agentOptions, setAgentOptions] = useState<{ value: string; label: string }[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -63,11 +59,13 @@ export default function JournalApp() {
   };
 
   const renderToast = (emoji: string, boldText?: string, trailingText?: string) => (
-    <span className="inline-flex items-center gap-1.5">
-      <span aria-hidden="true">{emoji}</span>
-      {boldText && <span className="font-semibold">{boldText}</span>}
-      {trailingText && <span>{trailingText}</span>}
-    </span>
+    <div className="flex items-center gap-1.5 text-sm">
+      <span aria-hidden="true" className="shrink-0">{emoji}</span>
+      <span className="flex flex-wrap items-center gap-1">
+        {boldText && <span className="font-semibold">{boldText}</span>}
+        {trailingText && <span>{trailingText}</span>}
+      </span>
+    </div>
   );
 
   const fetchEntries = async () => {
@@ -76,7 +74,6 @@ export default function JournalApp() {
     const fetchedEntries = data.entries || [];
     setEntries(fetchedEntries);
 
-    // Collect all unique categories
     const categoriesSet = new Set<string>();
     fetchedEntries.forEach((entry: JournalEntry) => {
       entry.categories?.forEach((cat: string) => categoriesSet.add(cat));
@@ -84,8 +81,19 @@ export default function JournalApp() {
     setAllCategories(Array.from(categoriesSet).sort());
   };
 
+  const fetchAgents = async () => {
+    try {
+      const res = await fetch("/api/agents");
+      const data = await res.json();
+      setAgentOptions(data.agents || []);
+    } catch (error) {
+      console.error("Failed to fetch agents:", error);
+    }
+  };
+
   useEffect(() => {
     fetchEntries();
+    fetchAgents();
   }, []);
 
   const handleSave = async () => {
@@ -255,12 +263,10 @@ export default function JournalApp() {
     }
   };
 
-  // Handle agent reflection
   const handleAgentReflect = async (entry: JournalEntry, agentName?: string) => {
     const agent = agentName || selectedAgent[entry.id] || "marcus-aurelius";
     const agentLabel = agentOptions.find(a => a.value === agent)?.label || "Marcus Aurelius";
     setReflecting((prev) => ({ ...prev, [`${entry.id}_${agent}`]: true }));
-    // Clear previous reflection for this agent while generating
     setAgentReflections((prev) => ({
       ...prev,
       [entry.id]: {
@@ -268,6 +274,7 @@ export default function JournalApp() {
         [agent]: { name: agentLabel, reflection: "" },
       },
     }));
+    toast(renderToast("🤔", "Reflecting", `${agentLabel} pondering your thoughts...`));
     try {
       const res = await fetch("/api/reflect", {
         method: "POST",
@@ -282,6 +289,7 @@ export default function JournalApp() {
           [agent]: { name: agentLabel, reflection: data.reflection },
         },
       }));
+      toast(renderToast("✨", "Reflection complete", `${agentLabel}'s wisdom has been shared.`));
     } catch (e) {
       toast(renderToast("🤖", "Agent error", "Failed to reflect on journal."));
     } finally {
@@ -604,7 +612,15 @@ export default function JournalApp() {
                               className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1.5 prose-p:leading-relaxed prose-headings:mt-3 prose-headings:mb-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-hr:my-3"
                               dangerouslySetInnerHTML={{ __html: entry.text }}
                             />
-                            <div className="mt-4 flex items-center gap-2">
+                            <div className="mt-4">
+                              {agentOptions.some(agent => {
+                                const isReflecting = reflecting[`${entry.id}_${agent.value}`];
+                                const isReflected = agentReflections[entry.id]?.[agent.value];
+                                return !isReflecting && !isReflected;
+                              }) && (
+                                <p className="text-sm text-muted-foreground mb-3">Reflect on your journal with</p>
+                              )}
+                              <div className="flex items-center gap-2">
                               {agentOptions.map(agent => {
                                 const isReflecting = reflecting[`${entry.id}_${agent.value}`];
                                 const isReflected = agentReflections[entry.id]?.[agent.value];
@@ -623,6 +639,7 @@ export default function JournalApp() {
                                   </Button>
                                 );
                               })}
+                              </div>
                             </div>
                             <>
                               {agentOptions.map(agent => {
