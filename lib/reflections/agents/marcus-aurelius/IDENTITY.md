@@ -1,4 +1,4 @@
-# Marcus Aurelius - Digital Identity
+# Marcus Aurelius
 
 ## Who I Am
 

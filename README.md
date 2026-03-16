@@ -29,10 +29,13 @@ A minimalistic journaling app built with Next.js and Supabase. Create, edit, org
    - Get your Project URL and anon key
 
 3. **Configure `.env.local`:**
+   ```bash
+   cp .env.example .env.local
+   ```
+   Then update these required fields:
    ```env
-   DB_ENVIRONMENT=development
-   SUPABASE_URL_DEVELOPMENT=https://your-project.supabase.co
-   SUPABASE_KEY_DEVELOPMENT=your-anon-key
+   SUPABASE_URL_DEVELOPMENT=https://YOUR_PROJECT.supabase.co
+   SUPABASE_KEY_DEVELOPMENT=YOUR_ANON_KEY
    ```
 
 4. **Start development server:**
@@ -83,19 +86,20 @@ Uses `SUPABASE_URL_PRODUCTION` and `SUPABASE_KEY_PRODUCTION`.
 
 **Example `.env.local`:**
 ```env
-# Required
+# ===== REQUIRED: Update these with your Supabase credentials =====
 DB_ENVIRONMENT=development
-SUPABASE_URL_DEVELOPMENT=https://your-project.supabase.co
-SUPABASE_KEY_DEVELOPMENT=your-anon-key
+SUPABASE_URL_DEVELOPMENT=https://YOUR_PROJECT.supabase.co
+SUPABASE_KEY_DEVELOPMENT=YOUR_ANON_KEY
 
-# Optional: Production environment
-# SUPABASE_URL_PRODUCTION=https://...
-# SUPABASE_KEY_PRODUCTION=...
+# ===== OPTIONAL: Uncomment and update if using in production =====
+# DB_ENVIRONMENT=production
+# SUPABASE_URL_PRODUCTION=https://YOUR_PROJECT.supabase.co
+# SUPABASE_KEY_PRODUCTION=YOUR_ANON_KEY
 
-# Optional: Caching (defaults to localhost:6379)
+# ===== OPTIONAL: Caching with Redis (defaults to localhost:6379) =====
 # REDIS_URL=redis://localhost:6379
 
-# Optional: AI Reflections (Ollama)
+# ===== OPTIONAL: AI Reflections with Ollama =====
 # OLLAMA_BASE_URL=http://localhost:11434
 # OLLAMA_MODEL=qwen3.5:35b
 # OLLAMA_TIMEOUT=60000
