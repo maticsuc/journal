@@ -13,21 +13,21 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 
 interface JournalEntry {
-  filename: string;
+  id: number;
   date: string;
   title: string;
   text: string;
-  timestamp: number;
+  created_at: string;
   categories: string[];
   pinned: boolean;
 }
 
 export default function JournalApp() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
-  // agentReflections: { [filename]: { [agentName]: { name, reflection } } }
+  // agentReflections: { [id]: { [agentName]: { name, reflection } } }
   const [agentReflections, setAgentReflections] = useState<Record<string, Record<string, { name: string; reflection: string }>>>({});
   const [reflecting, setReflecting] = useState<Record<string, boolean>>({});
-  const [selectedAgent, setSelectedAgent] = useState<Record<string, string>>({});
+  const [selectedAgent, setSelectedAgent] = useState<Record<number, string>>({});
   const agentOptions = [
     { value: "marcus-aurelius", label: "Marcus Aurelius" },
     { value: "big-momma", label: "Big Momma" },
@@ -42,7 +42,7 @@ export default function JournalApp() {
   });
   const [newCategoryInput, setNewCategoryInput] = useState("");
   const [allCategories, setAllCategories] = useState<string[]>([]);
-  const entryRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const entryRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const creationMessages = [
     "Zelo lepo napisano! 🖋️",
     "Zanimivo! 🤔",
@@ -112,9 +112,9 @@ export default function JournalApp() {
     fetchEntries();
   };
 
-  const handleUpdate = async (filename: string) => {
+  const handleUpdate = async (id: number) => {
     const updatedTitle = formData.title.trim() || "Untitled journal";
-    const original = entries.find((e) => e.filename === filename);
+    const original = entries.find((e) => e.id === id);
 
     if (
       original &&
@@ -130,7 +130,7 @@ export default function JournalApp() {
     await fetch("/api/journals", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename, ...formData }),
+      body: JSON.stringify({ id, ...formData }),
     });
 
     toast(renderToast("✏️", updatedTitle, "edited."));
@@ -139,16 +139,16 @@ export default function JournalApp() {
     fetchEntries();
   };
 
-  const handleDelete = async (filename: string) => {
+  const handleDelete = async (id: number) => {
     if (!confirm("Delete this entry?")) return;
 
-    const entry = entries.find((e) => e.filename === filename);
+    const entry = entries.find((e) => e.id === id);
     const entryTitle = entry?.title?.trim() || "Untitled journal";
 
     await fetch("/api/journals", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename }),
+      body: JSON.stringify({ id }),
     });
 
     toast(renderToast("🗑️", entryTitle, "deleted."));
@@ -156,8 +156,8 @@ export default function JournalApp() {
     fetchEntries();
   };
 
-  const handleTogglePin = async (filename: string) => {
-    const entry = entries.find((e) => e.filename === filename);
+  const handleTogglePin = async (id: number) => {
+    const entry = entries.find((e) => e.id === id);
     if (!entry) return;
 
     const isPinning = !entry.pinned;
@@ -165,7 +165,7 @@ export default function JournalApp() {
     let scrollBefore: number | null = null;
 
     if (isPinning && typeof window !== "undefined") {
-      const node = entryRefs.current[filename];
+      const node = entryRefs.current[id];
       if (node) {
         const rect = node.getBoundingClientRect();
         topBefore = rect.top;
@@ -184,7 +184,7 @@ export default function JournalApp() {
     await fetch("/api/journals", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename }),
+      body: JSON.stringify({ id }),
     });
 
     await fetchEntries();
@@ -193,7 +193,7 @@ export default function JournalApp() {
       // Read updated position and adjust scroll so the user stays anchored where the pin action happened.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          const updatedNode = entryRefs.current[filename];
+          const updatedNode = entryRefs.current[id];
           if (!updatedNode) return;
           const topAfter = updatedNode.getBoundingClientRect().top;
           const delta = topAfter - topBefore!;
@@ -204,7 +204,7 @@ export default function JournalApp() {
   };
 
   const startEdit = (entry: JournalEntry) => {
-    setEditingEntry(entry.filename);
+    setEditingEntry(String(entry.id));
     setFormData({
       date: entry.date,
       title: entry.title,
@@ -257,14 +257,14 @@ export default function JournalApp() {
 
   // Handle agent reflection
   const handleAgentReflect = async (entry: JournalEntry, agentName?: string) => {
-    const agent = agentName || selectedAgent[entry.filename] || "marcus-aurelius";
+    const agent = agentName || selectedAgent[entry.id] || "marcus-aurelius";
     const agentLabel = agentOptions.find(a => a.value === agent)?.label || "Marcus Aurelius";
-    setReflecting((prev) => ({ ...prev, [`${entry.filename}_${agent}`]: true }));
+    setReflecting((prev) => ({ ...prev, [`${entry.id}_${agent}`]: true }));
     // Clear previous reflection for this agent while generating
     setAgentReflections((prev) => ({
       ...prev,
-      [entry.filename]: {
-        ...(prev[entry.filename] || {}),
+      [entry.id]: {
+        ...(prev[entry.id] || {}),
         [agent]: { name: agentLabel, reflection: "" },
       },
     }));
@@ -277,15 +277,15 @@ export default function JournalApp() {
       const data = await res.json();
       setAgentReflections((prev) => ({
         ...prev,
-        [entry.filename]: {
-          ...(prev[entry.filename] || {}),
+        [entry.id]: {
+          ...(prev[entry.id] || {}),
           [agent]: { name: agentLabel, reflection: data.reflection },
         },
       }));
     } catch (e) {
       toast(renderToast("🤖", "Agent error", "Failed to reflect on journal."));
     } finally {
-      setReflecting((prev) => ({ ...prev, [`${entry.filename}_${agent}`]: false }));
+      setReflecting((prev) => ({ ...prev, [`${entry.id}_${agent}`]: false }));
     }
   };
 
@@ -409,25 +409,25 @@ export default function JournalApp() {
               if (a.pinned !== b.pinned) {
                 return a.pinned ? -1 : 1;
               }
-              return b.timestamp - a.timestamp;
+              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
             });
 
             return (
               <AnimatePresence initial={false}>
                 {sortedEntries.map((entry) => (
                   <motion.div
-                    key={entry.filename}
+                    key={entry.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
                     layout
                     ref={(el) => {
-                      entryRefs.current[entry.filename] = el;
+                      entryRefs.current[entry.id] = el;
                     }}
                   >
                     <Card className={entry.pinned ? "border-primary/20 bg-primary/5 transition-all duration-300 ease-in-out" : "transition-all duration-300 ease-in-out"}>
-                      {editingEntry === entry.filename ? (
+                      {editingEntry === String(entry.id) ? (
                         <CardContent className="space-y-4 pt-6">
                           <Input
                             type="date"
@@ -501,7 +501,7 @@ export default function JournalApp() {
 
                           <div className="flex gap-2">
                             <Button
-                              onClick={() => handleUpdate(entry.filename)}
+                              onClick={() => handleUpdate(entry.id)}
                               className="flex-1"
                             >
                               <Save className="mr-2 h-4 w-4" />
@@ -527,13 +527,13 @@ export default function JournalApp() {
                                 )}
                                 <p className="text-xs text-muted-foreground">
                                   {(() => {
-                                    const d = new Date(entry.timestamp);
+                                    const d = new Date(entry.created_at);
                                     return `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`;
                                   })()}
                                 </p>
                                 <p className="text-sm text-foreground">
                                   {(() => {
-                                    const d = new Date(entry.timestamp);
+                                    const d = new Date(entry.created_at);
                                     const weekdays = [
                                       "Nedelja",
                                       "Ponedeljek",
@@ -577,7 +577,7 @@ export default function JournalApp() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => handleTogglePin(entry.filename)}
+                                  onClick={() => handleTogglePin(entry.id)}
                                   className={entry.pinned ? "text-primary" : ""}
                                 >
                                   <Pin className="h-4 w-4" />
@@ -592,7 +592,7 @@ export default function JournalApp() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => handleDelete(entry.filename)}
+                                  onClick={() => handleDelete(entry.id)}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -606,8 +606,8 @@ export default function JournalApp() {
                             />
                             <div className="mt-4 flex items-center gap-2">
                               {agentOptions.map(agent => {
-                                const isReflecting = reflecting[`${entry.filename}_${agent.value}`];
-                                const isReflected = agentReflections[entry.filename]?.[agent.value];
+                                const isReflecting = reflecting[`${entry.id}_${agent.value}`];
+                                const isReflected = agentReflections[entry.id]?.[agent.value];
                                 if (isReflecting || isReflected) return null;
                                 return (
                                   <Button
@@ -615,7 +615,7 @@ export default function JournalApp() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                      setSelectedAgent(prev => ({ ...prev, [entry.filename]: agent.value }));
+                                      setSelectedAgent(prev => ({ ...prev, [entry.id]: agent.value }));
                                       handleAgentReflect(entry, agent.value);
                                     }}
                                   >
@@ -626,8 +626,8 @@ export default function JournalApp() {
                             </div>
                             <>
                               {agentOptions.map(agent => {
-                                const isReflecting = reflecting[`${entry.filename}_${agent.value}`];
-                                const reflection = agentReflections[entry.filename]?.[agent.value];
+                                const isReflecting = reflecting[`${entry.id}_${agent.value}`];
+                                const reflection = agentReflections[entry.id]?.[agent.value];
                                 if (!isReflecting && !reflection) return null;
                                 return (
                                   <div className="mt-6" key={agent.value}>

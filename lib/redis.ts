@@ -26,10 +26,6 @@ export function getRedis(): Redis {
     console.error("Redis error:", err);
   });
 
-  redis.on("connect", () => {
-    console.log("Redis connected");
-  });
-
   return redis;
 }
 

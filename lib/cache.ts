@@ -1,13 +1,13 @@
 import { getRedis } from "./redis";
 
 interface JournalEntry {
-  filename: string;
+  id: number;
   date: string;
   title: string;
   text: string;
   categories: string[];
-  timestamp: number;
   pinned: boolean;
+  created_at: string;
 }
 
 // Cache key constants
