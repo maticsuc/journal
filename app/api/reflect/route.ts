@@ -8,6 +8,12 @@ export async function POST(req: Request) {
     const reflection = await agent.process(entry);
     return NextResponse.json({ reflection });
   } catch (error) {
-    return NextResponse.json({ error: 'Agent reflection failed.' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[Reflect API Error]', errorMessage);
+    console.error('[Ollama Config]', {
+      baseURL: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+      model: process.env.OLLAMA_MODEL,
+    });
+    return NextResponse.json({ error: `Agent reflection failed: ${errorMessage}` }, { status: 500 });
   }
 }
