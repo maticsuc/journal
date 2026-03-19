@@ -23,6 +23,16 @@ interface JournalEntry {
   pinned: boolean;
 }
 
+const renderToast = (emoji: string, boldText?: string, trailingText?: string) => (
+  <div className="flex items-center gap-1.5 text-sm">
+    <span aria-hidden="true" className="shrink-0">{emoji}</span>
+    <span className="flex flex-wrap items-center gap-1">
+      {boldText && <span className="font-semibold">{boldText}</span>}
+      {trailingText && <span>{trailingText}</span>}
+    </span>
+  </div>
+);
+
 export default function JournalPage() {
   const params = useParams();
   const router = useRouter();
@@ -96,12 +106,12 @@ export default function JournalPage() {
         const data = await res.json();
         setReflectionsAvailable(data.available === true);
         if (!data.available) {
-          toast.error("⚠️ Reflections are currently unavailable");
+          toast(renderToast("⚠️", undefined, "Reflections are currently unavailable"));
         }
       } catch (error) {
         console.error("Failed to check reflections availability:", error);
         setReflectionsAvailable(false);
-        toast.error("⚠️ Reflections are currently unavailable");
+        toast(renderToast("⚠️", undefined, "Reflections are currently unavailable"));
       }
     };
 
@@ -130,7 +140,7 @@ export default function JournalPage() {
       body: JSON.stringify({ id: entryId, ...formData }),
     });
 
-    toast.success(`✏️ ${updatedTitle} edited.`);
+    toast(renderToast("✏️", updatedTitle, "edited."));
     setEditingEntry(false);
 
     const res = await fetch("/api/journals");
@@ -153,7 +163,7 @@ export default function JournalPage() {
       body: JSON.stringify({ id: entryId }),
     });
 
-    toast.success(`🗑️ ${entryTitle} deleted.`);
+    toast(renderToast("🗑️", entryTitle, "deleted."));
     router.push("/");
   };
 
@@ -164,9 +174,9 @@ export default function JournalPage() {
     const entryTitle = entry.title?.trim() || "Untitled journal";
 
     if (entry.pinned) {
-      toast.success(`📌 ${entryTitle} unpinned.`);
+      toast(renderToast("📌", entryTitle, "unpinned."));
     } else {
-      toast.success(`📌 ${entryTitle} pinned.`);
+      toast(renderToast("📌", entryTitle, "pinned."));
     }
 
     await fetch("/api/journals", {
@@ -226,7 +236,7 @@ export default function JournalPage() {
       [agent]: { name: agentLabel, reflection: "" },
     }));
     
-    toast.success(`🤔 ${agentLabel} pondering your thoughts...`);
+    toast(renderToast("🤔", "Reflecting", `${agentLabel} pondering your thoughts...`));
     
     try {
       const res = await fetch("/api/reflect", {
@@ -238,9 +248,9 @@ export default function JournalPage() {
       if (!res.ok) {
         if (data.error && data.error.includes("Cannot reach Ollama")) {
           setReflectionsAvailable(false);
-          toast.error("⚠️ Reflections are currently unavailable");
+          toast(renderToast("⚠️", undefined, "Reflections are currently unavailable"));
         } else {
-          toast.error("Agent error: Failed to reflect on journal.");
+          toast(renderToast("🤖", "Agent error", "Failed to reflect on journal."));
         }
         setAgentReflections((prev) => {
           const updated = { ...prev };
@@ -252,10 +262,10 @@ export default function JournalPage() {
           ...prev,
           [agent]: { name: agentLabel, reflection: data.reflection },
         }));
-        toast.success(`✨ ${agentLabel} reflected on your journal.`);
+        toast(renderToast("✨", "Reflection complete", `${agentLabel} reflected on your journal.`));
       }
     } catch (e) {
-      toast.error("⚠️ Reflections are currently unavailable");
+      toast(renderToast("⚠️", undefined, "Reflections are currently unavailable"));
       setReflectionsAvailable(false);
       setAgentReflections((prev) => {
         const updated = { ...prev };
