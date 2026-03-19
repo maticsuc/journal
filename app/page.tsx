@@ -32,6 +32,7 @@ export default function JournalApp() {
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareDialogEntryId, setShareDialogEntryId] = useState<number | null>(null);
+  const [reflectionsAvailable, setReflectionsAvailable] = useState(true);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     title: "",
@@ -93,9 +94,25 @@ export default function JournalApp() {
     }
   };
 
+  const checkReflectionsAvailable = async () => {
+    try {
+      const res = await fetch("/api/reflect/health");
+      const data = await res.json();
+      setReflectionsAvailable(data.available === true);
+      if (!data.available) {
+        toast(renderToast("⚠️", undefined, "Reflections are currently unavailable"));
+      }
+    } catch (error) {
+      console.error("Failed to check reflections availability:", error);
+      setReflectionsAvailable(false);
+      toast(renderToast("⚠️", undefined, "Reflections are currently unavailable"));
+    }
+  };
+
   useEffect(() => {
     fetchEntries();
     fetchAgents();
+    checkReflectionsAvailable();
   }, []);
 
   const handleSave = async () => {
@@ -284,16 +301,48 @@ export default function JournalApp() {
         body: JSON.stringify({ entry: entry.text, agentName: agent }),
       });
       const data = await res.json();
-      setAgentReflections((prev) => ({
-        ...prev,
-        [entry.id]: {
-          ...(prev[entry.id] || {}),
-          [agent]: { name: agentLabel, reflection: data.reflection },
-        },
-      }));
-      toast(renderToast("✨", "Reflection complete", `${agentLabel} reflected on your journal.`));
+      if (!res.ok) {
+        if (data.error && data.error.includes("Cannot reach Ollama")) {
+          setReflectionsAvailable(false);
+          toast(renderToast("⚠️", undefined, "Reflections are currently unavailable"));
+        } else {
+          toast(renderToast("🤖", "Agent error", "Failed to reflect on journal."));
+        }
+        setAgentReflections((prev) => {
+          const updated = { ...prev };
+          if (updated[entry.id]) {
+            const { [agent]: _, ...rest } = updated[entry.id];
+            updated[entry.id] = rest;
+            if (Object.keys(rest).length === 0) {
+              delete updated[entry.id];
+            }
+          }
+          return updated;
+        });
+      } else {
+        setAgentReflections((prev) => ({
+          ...prev,
+          [entry.id]: {
+            ...(prev[entry.id] || {}),
+            [agent]: { name: agentLabel, reflection: data.reflection },
+          },
+        }));
+        toast(renderToast("✨", "Reflection complete", `${agentLabel} reflected on your journal.`));
+      }
     } catch (e) {
-      toast(renderToast("🤖", "Agent error", "Failed to reflect on journal."));
+      toast(renderToast("⚠️", undefined, "Reflections are currently unavailable"));
+      setReflectionsAvailable(false);
+      setAgentReflections((prev) => {
+        const updated = { ...prev };
+        if (updated[entry.id]) {
+          const { [agent]: _, ...rest } = updated[entry.id];
+          updated[entry.id] = rest;
+          if (Object.keys(rest).length === 0) {
+            delete updated[entry.id];
+          }
+        }
+        return updated;
+      });
     } finally {
       setReflecting((prev) => ({ ...prev, [`${entry.id}_${agent}`]: false }));
     }
@@ -643,6 +692,7 @@ export default function JournalApp() {
                                     key={agent.value}
                                     variant="outline"
                                     size="sm"
+                                    disabled={!reflectionsAvailable}
                                     onClick={() => {
                                       setSelectedAgent(prev => ({ ...prev, [entry.id]: agent.value }));
                                       handleAgentReflect(entry, agent.value);

@@ -45,6 +45,7 @@ export default function JournalPage() {
   const [reflecting, setReflecting] = useState<Record<string, boolean>>({});
   const [agentOptions, setAgentOptions] = useState<{ value: string; label: string }[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<string>("marcus-aurelius");
+  const [reflectionsAvailable, setReflectionsAvailable] = useState(true);
 
   useEffect(() => {
     const fetchEntry = async () => {
@@ -89,8 +90,24 @@ export default function JournalPage() {
       }
     };
 
+    const checkReflectionsAvailable = async () => {
+      try {
+        const res = await fetch("/api/reflect/health");
+        const data = await res.json();
+        setReflectionsAvailable(data.available === true);
+        if (!data.available) {
+          toast.error("⚠️ Reflections are currently unavailable");
+        }
+      } catch (error) {
+        console.error("Failed to check reflections availability:", error);
+        setReflectionsAvailable(false);
+        toast.error("⚠️ Reflections are currently unavailable");
+      }
+    };
+
     fetchEntry();
     fetchAgents();
+    checkReflectionsAvailable();
   }, [entryId]);
 
   const handleUpdate = async () => {
@@ -218,13 +235,33 @@ export default function JournalPage() {
         body: JSON.stringify({ entry: entry.text, agentName: agent }),
       });
       const data = await res.json();
-      setAgentReflections((prev) => ({
-        ...prev,
-        [agent]: { name: agentLabel, reflection: data.reflection },
-      }));
-      toast.success(`✨ ${agentLabel} reflected on your journal.`);
+      if (!res.ok) {
+        if (data.error && data.error.includes("Cannot reach Ollama")) {
+          setReflectionsAvailable(false);
+          toast.error("⚠️ Reflections are currently unavailable");
+        } else {
+          toast.error("Agent error: Failed to reflect on journal.");
+        }
+        setAgentReflections((prev) => {
+          const updated = { ...prev };
+          delete updated[agent];
+          return updated;
+        });
+      } else {
+        setAgentReflections((prev) => ({
+          ...prev,
+          [agent]: { name: agentLabel, reflection: data.reflection },
+        }));
+        toast.success(`✨ ${agentLabel} reflected on your journal.`);
+      }
     } catch (e) {
-      toast.error("Agent error: Failed to reflect on journal.");
+      toast.error("⚠️ Reflections are currently unavailable");
+      setReflectionsAvailable(false);
+      setAgentReflections((prev) => {
+        const updated = { ...prev };
+        delete updated[agent];
+        return updated;
+      });
     } finally {
       setReflecting((prev) => ({ ...prev, [agent]: false }));
     }
@@ -482,6 +519,7 @@ export default function JournalPage() {
                           key={agent.value}
                           variant="outline"
                           size="sm"
+                          disabled={!reflectionsAvailable}
                           onClick={() => {
                             setSelectedAgent(agent.value);
                             handleAgentReflect(agent.value);
