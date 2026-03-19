@@ -6,11 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { RichMarkdownEditor } from "@/components/rich-markdown-editor";
-import { Plus, Save, X, Trash2, Edit2, Pin, RefreshCw } from "lucide-react";
+import { Plus, Save, X, Trash2, Edit2, Pin, RefreshCw, Share2 } from "lucide-react";
 import { getCategoryColor } from "@/lib/categories";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { ShareJournalDialog } from "@/components/share-journal-dialog";
 
 interface JournalEntry {
   id: number;
@@ -30,6 +30,8 @@ export default function JournalApp() {
   const [agentOptions, setAgentOptions] = useState<{ value: string; label: string }[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareDialogEntryId, setShareDialogEntryId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     title: "",
@@ -593,6 +595,17 @@ export default function JournalApp() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
+                                  onClick={() => {
+                                    setShareDialogEntryId(entry.id);
+                                    setShareDialogOpen(true);
+                                  }}
+                                  title="Share this journal"
+                                >
+                                  <Share2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   onClick={() => startEdit(entry)}
                                 >
                                   <Edit2 className="h-4 w-4" />
@@ -688,6 +701,11 @@ export default function JournalApp() {
           })()}
         </div>
       </div>
+      <ShareJournalDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        entryId={shareDialogEntryId || 0}
+      />
     </main>
   );
 }
