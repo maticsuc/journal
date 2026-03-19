@@ -289,7 +289,7 @@ export default function JournalApp() {
           [agent]: { name: agentLabel, reflection: data.reflection },
         },
       }));
-      toast(renderToast("✨", "Reflection complete", `${agentLabel}'s wisdom has been shared.`));
+      toast(renderToast("✨", "Reflection complete", `${agentLabel} reflected on your journal.`));
     } catch (e) {
       toast(renderToast("🤖", "Agent error", "Failed to reflect on journal."));
     } finally {
